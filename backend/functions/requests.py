@@ -64,7 +64,19 @@ def convert_audio_to_text(audio_file):
         logger.error(f"Error in audio transcription: {e}")
         return None
 
-# Function to Translate English to Hindi using Ollama (Llama 3)
+# Function to Generate LLaMA Response in English
+def generate_llama_response(english_text):
+    try:
+        response = ollama.chat(model="llama3", messages=[{"role": "user", "content": english_text}])
+        english_response = response["message"]["content"].strip()
+
+        return english_response
+
+    except Exception as e:
+        logger.error(f"Error in generating LLaMA response: {e}")
+        return None
+
+# Function to Translate English to Hindi using LLaMA
 def translate_text_to_hindi(english_text):
     try:
         prompt = f"Translate the following English text into Hindi: '{english_text}'"

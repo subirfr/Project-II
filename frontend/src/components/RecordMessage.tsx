@@ -32,7 +32,7 @@ const RecordMessage = ({ handleStop }: Props) => {
               console.log("Recording stopped.");
               stopRecording();
             }}
-            className="bg-white p-4 rounded-full"
+            className="bg-gray-900 p-4 rounded-full"
           >
             <RecordIcon
               classText={
@@ -42,7 +42,7 @@ const RecordMessage = ({ handleStop }: Props) => {
               }
             />
           </button>
-          <p className="mt-2 text-white font-light">{status}</p>
+          <p className="mt-0 text-gray-900 font-medium">{status}</p>
         </div>
       )}
     />

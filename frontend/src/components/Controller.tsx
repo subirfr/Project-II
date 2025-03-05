@@ -14,10 +14,9 @@ const Controller = () => {
 
   const handleStop = async (blobUrl: string) => {
     setIsLoading(true);
-
+  
     console.log("Processing recorded audio...");
-
-    // Convert blob URL to blob object
+  
     fetch(blobUrl)
       .then((res) => res.blob())
       .then(async (blob) => {
@@ -27,32 +26,39 @@ const Controller = () => {
           setIsLoading(false);
           return;
         }
-
-        // Append recorded message to messages
-        const myMessage = { sender: "me", blobUrl };
-        const messagesArr = [...messages, myMessage];
-        setMessages(messagesArr);
-
+  
         // Send audio to backend
         const formData = new FormData();
         formData.append("file", blob, "myFile.wav");
-
+  
         try {
           const response = await axios.post("http://localhost:8000/post-audio", formData, {
             headers: { "Content-Type": "multipart/form-data" },
-            responseType: "arraybuffer",
           });
-
-          // Convert response to audio and play it
-          const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
+  
+          const { message_decoded, english_response, audio_id } = response.data;
+  
+          // Append user message only once (with text and audio)
+          const userMessage = { sender: "me", text: message_decoded, blobUrl };
+          setMessages((prevMessages) => [...prevMessages, userMessage]);
+  
+          // Fetch translated audio response
+          const audioResponse = await axios.get(`http://localhost:8000/get-audio/${audio_id}`, {
+            responseType: "blob",
+          });
+  
+          const audioBlob = audioResponse.data;
           const audioUrl = createBlobURL(audioBlob);
-          const rachelMessage = { sender: "rachel", blobUrl: audioUrl };
-
-          setMessages([...messagesArr, rachelMessage]);
+  
+          const audioElement = new Audio(audioUrl);
+          audioElement.play();
+  
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { sender: "Translation", blobUrl: audioUrl, text: english_response },
+          ]);
+  
           setIsLoading(false);
-
-          const audio = new Audio(audioUrl);
-          audio.play();
         } catch (error) {
           console.error("Error sending audio:", error);
           setIsLoading(false);
@@ -63,19 +69,17 @@ const Controller = () => {
         setIsLoading(false);
       });
   };
-
+  
   return (
     <div className="h-screen overflow-y-hidden">
-      {/* Title */}
       <Title setMessages={setMessages} />
 
       <div className="flex flex-col justify-between h-full overflow-y-scroll pb-96">
-        {/* Conversation */}
         <div className="mt-5 px-5">
-          {messages.map((audio, index) => (
+        {messages.map((audio, index) => (
             <div
               key={index + audio.sender}
-              className={"flex flex-col " + (audio.sender === "rachel" && "flex items-end")}
+              className={"flex flex-col " + (audio.sender === "Translation" && "flex items-center")}
             >
               <div className="mt-4 ">
                 <p
@@ -94,9 +98,7 @@ const Controller = () => {
           ))}
 
           {messages.length === 0 && !isLoading && (
-            <div className="text-center font-light italic mt-10">
-              Say something...
-            </div>
+            <div className="text-center font-light italic mt-10">Say something...</div>
           )}
 
           {isLoading && (
@@ -106,8 +108,23 @@ const Controller = () => {
           )}
         </div>
 
-        {/* Recorder */}
-        <div className="fixed bottom-0 w-full py-6 border-t text-center bg-gradient-to-r from-yellow-500 to-yellow-100">
+        <div className="fixed bottom-10 right-10 bg-gray-900 text-white p-5 rounded-lg shadow-lg w-1/3">
+          <p className="font-bold text-lg mb-4">CHAT RESPONSE</p>
+
+          {messages.map((msg, index) =>
+            msg.text ? (
+              <div key={index} className="flex items-start bg-white text-black p-3 mt-2 rounded-lg max-w-[80%]">
+                <img src={msg.sender === "me" ? "/user.png" : "/chatbot.png"} alt="Icon" className="w-8 h-8 rounded-full mr-3" />
+                <div>
+                  <p className="font-semibold">{msg.sender === "me" ? "User:" : "Chatbot:"}</p>
+                  <p className={msg.sender === "me" ? "text-sm" : "text-sm italic"}>{msg.text}</p>
+                </div>
+              </div>
+            ) : null
+          )}
+        </div>
+
+        <div className="fixed bottom-0 w-full py-5 text-center">
           <div className="flex justify-center items-center w-full">
             <div>
               <RecordMessage handleStop={handleStop} />
@@ -118,5 +135,4 @@ const Controller = () => {
     </div>
   );
 };
-
 export default Controller;

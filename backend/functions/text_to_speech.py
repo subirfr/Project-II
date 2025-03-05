@@ -1,6 +1,7 @@
 import requests
 from decouple import config
 from requests.exceptions import RequestException, Timeout
+import time
 
 ELEVEN_LABS_API_KEY = config("ELEVEN_LABS_API_KEY")
 
@@ -27,23 +28,25 @@ def convert_text_to_speech(message):
     }
     endpoint = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_rachel}"
 
-    try:
-        # Make the request with a timeout to prevent long waits
-        response = requests.post(endpoint, json=body, headers=headers, timeout=10)
-        response.raise_for_status()  # Raises an error for bad HTTP status codes
-    except Timeout:
-        print("Error: The request timed out. Please check the network connection.")
-        return None
-    except RequestException as e:
-        # Log the error and return a message
-        print(f"Error during request: {e}")
-        return None
+    # Retry logic for making the request
+    for attempt in range(3):  # Retry up to 3 times
+        try:
+            response = requests.post(endpoint, json=body, headers=headers, timeout=10)
+            response.raise_for_status()  # Check for HTTP errors
+            if response.status_code == 200:
+                # Log success and return the audio content
+                print(f"Successfully received audio response on attempt {attempt + 1}.")
+                return response.content
+            else:
+                print(f"Error: {response.status_code} - {response.text}")
+                return None
+        except Timeout:
+            print(f"Timeout occurred on attempt {attempt + 1}, retrying...")
+        except RequestException as e:
+            print(f"Error during request on attempt {attempt + 1}: {e}, retrying...")
 
-    # Check if the response was successful
-    if response.status_code == 200:
-        # Return the audio content
-        return response.content
-    else:
-        # Log the response error
-        print(f"Error: {response.status_code} - {response.text}")
-        return None
+        time.sleep(3)  # Wait for 3 seconds before retrying
+
+    # If all retries fail, return None
+    print("Failed to generate audio after 3 attempts.")
+    return None
