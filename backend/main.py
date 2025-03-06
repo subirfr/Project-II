@@ -94,6 +94,7 @@ async def post_audio(file: UploadFile = File(...)):
         return JSONResponse(content={
             "message_decoded": message_decoded,
             "english_response": english_response,
+            "hindi_translation": hindi_translation,
             "audio_id": audio_id  # Client will use this to request audio separately
         })
 

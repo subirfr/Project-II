@@ -77,11 +77,21 @@ def generate_llama_response(english_text):
         return None
 
 # Function to Translate English to Hindi using LLaMA
+# Function to Translate English to Hindi using LLaMA
+# Function to Translate English to Hindi using LLaMA
 def translate_text_to_hindi(english_text):
     try:
-        prompt = f"Translate the following English text into Hindi: '{english_text}'"
+        prompt = f"Translate the following English text into Hindi: '{english_text}' and return only the Hindi translation without any explanations or notes."
         response = ollama.chat(model="llama3", messages=[{"role": "user", "content": prompt}])
         hindi_translation = response["message"]["content"].strip()
+
+        # Remove "Hindi Translation:" prefix if present
+        if "Hindi Translation:" in hindi_translation:
+            hindi_translation = hindi_translation.split("Hindi Translation:")[-1].strip()
+
+        # Remove any extra notes (assumes notes start with '(' or 'Note:')
+        hindi_translation = hindi_translation.split("\n")[0]  # Takes only the first line
+        hindi_translation = hindi_translation.split("Note:")[0].strip()  # Removes additional notes if present
 
         return hindi_translation
 
